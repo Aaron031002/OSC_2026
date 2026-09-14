@@ -7,14 +7,14 @@
 
 char uart_getc() {
     // TODO: Implement this function
-    while ((*UART_LSR) & LSR_DR == 0);
+    while (((*UART_LSR) & LSR_DR) == 0);
 
     return *UART_RBR;
 }
 
 void uart_putc(char c) {
     // TODO: Implement this function
-    while ((*UART_LSR) & LSR_TDRQ == 0);
+    while (((*UART_LSR) & LSR_TDRQ) == 0);
 
     *UART_THR = c;
 }
@@ -31,13 +31,13 @@ int strcmp(const char* s1, const char* s2)
 {
     while (*s1 != '\0' && *s2 != '\0'){
         if (*s1 != *s2){
-            return 0;
+            return 1;
         }
         s1++;
         s2++;
     }
 
-    return (*s1 == '\0' && *s2 == '\0');
+    return !(*s1 == '\0' && *s2 == '\0');
 }
 
 void shell() 
@@ -54,18 +54,18 @@ void shell()
         if (c_in == '\n' || c_in == '\r'){
             command[index] = '\0';
 
-            if (strcmp(command, "hello")){
-                uart_puts("\nHello World!\r\n");
+            if (!strcmp(command, "hello")){
+                uart_puts("\nHello World!\n");
             }
-            else if (strcmp(command, "help")){
+            else if (!strcmp(command, "help")){
                 uart_puts("\nAvailable commands:\
                             \n  help - show all commands.\
-                            \n  hello - print Hello World.\r\n");
+                            \n  hello - print Hello World.\n");
             }
             else {
                 uart_puts("\nUnknown command: ");
                 uart_puts(command);
-                uart_puts("\nuse help to get commands.\r\n");
+                uart_puts("\nuse help to get commands.\n");
             }
             
             index = 0;
