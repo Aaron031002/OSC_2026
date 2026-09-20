@@ -121,8 +121,8 @@ void load_kernel()
 
     uart_puts("\nHeader OK\n");
     uart_puts("Kernel size: ");
-    uart_puts(header.size);
-    uart_putc("\n");
+    uart_hex(header.size);
+    uart_puts("\n");
 
     uart_puts("\nReceiving kernel...\n");
 
@@ -136,7 +136,7 @@ void load_kernel()
 
     uart_puts("Kernel received\n");
 
-    asm volatile("fence.i ::: memory"); // see the data that just updated as instruction to fetch, and make a memory barrier to stop compiler from reordering
+    asm volatile("fence.i" ::: "memory"); // see the data that just updated as instruction to fetch, and make a memory barrier to stop compiler from reordering
 
     /* (void (*)(void)) cast the type into a function pointer with no parameter and void output type */
     void (*kernel_entry)(void) = (void (*)(void))KERNEL_LOAD_ADDR;  // function pointer: dynamically decide which function to execute
