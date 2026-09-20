@@ -110,7 +110,7 @@ void load_kernel()
 
     /* load the values of magic and size into header_ptr */
     for (unsigned long i=0; i<sizeof(header); i++){
-        header_ptr[i] = uart_getb();
+        header_ptr[i] = uart_getb();    // wait magic & size from python
     }
 
     /* check if it is the correct image */
@@ -131,7 +131,7 @@ void load_kernel()
 
     /* load kernel image into kernel start point */
     for (unsigned long i=0; i<header.size; i++){
-        kernel[i] = uart_getb();
+        kernel[i] = uart_getb();    // wait python to transmit image
     }
 
     uart_puts("Kernel received\n");
