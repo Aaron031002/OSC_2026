@@ -12,14 +12,14 @@
 struct fdt_header {
     uint32_t magic;
     uint32_t totalsize;
-    uint32_t off_dt_struct;
+    uint32_t off_dt_struct;     // offset that starts from header start point to structure block
     uint32_t off_dt_strings;
     uint32_t off_mem_rsvmap;
     uint32_t version;
     uint32_t last_comp_version;
     uint32_t boot_cpuid_phys;
     uint32_t size_dt_strings;
-    uint32_t size_dt_struct;    // offset that starts from header start point to structure block 
+    uint32_t size_dt_struct;     
 };
 
 static inline uint32_t bswap32(uint32_t x) {
@@ -36,11 +36,81 @@ static inline const void* align_up(const void* ptr, size_t align) {
 
 int fdt_path_offset(const void* fdt, const char* path) {
     // TODO: Implement this function
-    const struct fdt_header* header = (const struct fdt_header*)fdt;    // define the type of this space as const struct fdt_header*
+    if (!fdt || !path || path[0] != '/')    // check input (the path needs to start with '/')
+        return -1;
 
-    if (bswap32(header->magic) != 0xd00dfeed){  // check the magic
+    /* header points to the start point of the device tree */
+    const struct fdt_header* header = (const struct fdt_header*)fdt;    
+
+    /* check MAGIC */
+    if (bswap32(header->magic) != 0xd00dfeed)   
+        return -1;
+
+    /* move 1 byte a time, so use uint8_t*/
+    const uint8_t* struct_base = (const uint8_t*)fdt + bswap32(header->off_dt_struct);  // struct_base points to the start point of structure block
+
+    /* setting token parser to the first token */
+    const uint8_t* p = struct_base;      
+
+    if (strcmp(path, '/') == 0)     // the path of root node is 0, so return 0
+        return 0;
+
+    /*
+        PART_1:
+
+        split the path into components
+        ex:
+            /cpus/cpu@0/interrupt-controller
+            to
+            cpus, cpu@0, interrupt-controller 
+    */
+
+    char* copy = malloc(strlen(path) + 1);  // reserve for \0
+
+    if (!copy)
+        return -1;
+
+    strcpy(copy, path + 1);     // skip the leading '/'
+
+    /* count the number of components */
+    size_t ncomp = 1;   // number of components
+    for (const char* s; *s; s++){   
+        if (*s == '/')
+            ncomp++;
+    }
+
+    char** comp = malloc(ncomp * sizeof(*comp));    // allocate 24 byte for 3 char* component     
+    int* matched = malloc((ncomp + 1) * sizeof(*matched));     // decide if the component in this level of depth has matched the path (include root)
+
+    if (!comp || !matched){
+        free(comp);
+        free(matched);
+        free(copy);
         return -1;
     }
+
+    size_t k = 0;
+    comp[k++] = copy;   // comp[0](char*) point to copy (the string of path)
+
+    /* split out the components */
+    for (char* s = copy; *s; s++){
+        if (*s == '/'){
+            *s = '\0';
+            comp[k++] = s + 1;  // point the next component(comp[1]) to the next component in path (cpus\0"point to here"cpu@0/...)
+        }
+    }
+    // now the component is in comp (comp[0] = cpus, comp[1] = cpu@0, comp[2] = interrupt-controller)
+
+    /*
+        PART_2:
+
+        depth:
+
+        root                    0
+        cpus                    1
+        cpu@0                   2
+        interrupt-controller    3
+    */
 
 
 }
