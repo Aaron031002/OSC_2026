@@ -19,7 +19,7 @@ struct fdt_header {
     uint32_t last_comp_version;
     uint32_t boot_cpuid_phys;
     uint32_t size_dt_strings;
-    uint32_t size_dt_struct;
+    uint32_t size_dt_struct;    // offset that starts from header start point to structure block 
 };
 
 static inline uint32_t bswap32(uint32_t x) {
@@ -36,6 +36,13 @@ static inline const void* align_up(const void* ptr, size_t align) {
 
 int fdt_path_offset(const void* fdt, const char* path) {
     // TODO: Implement this function
+    const struct fdt_header* header = (const struct fdt_header*)fdt;    // define the type of this space as const struct fdt_header*
+
+    if (bswap32(header->magic) != 0xd00dfeed){  // check the magic
+        return -1;
+    }
+
+
 }
 
 const void* fdt_getprop(const void* fdt,
@@ -47,17 +54,17 @@ const void* fdt_getprop(const void* fdt,
 
 int main() {
     /* Prepare the device tree blob */
-    FILE* fp = fopen("qemu.dtb", "rb");
+    FILE* fp = fopen("qemu.dtb", "rb"); // open device tree
     if (!fp) {
         perror("fopen");
         return EXIT_FAILURE;
     }
-    fseek(fp, 0, SEEK_END);
-    long sz = ftell(fp);
-    void* fdt = malloc(sz);
-    fseek(fp, 0, SEEK_SET);
-    if (fread(fdt, 1, sz, fp) != sz) {
-        fprintf(stderr, "Failed to read the device tree blob\n");
+    fseek(fp, 0, SEEK_END); // move to the END position
+    long sz = ftell(fp);    // calculate the size of file
+    void* fdt = malloc(sz); 
+    fseek(fp, 0, SEEK_SET); // move to the START position
+    if (fread(fdt, 1, sz, fp) != sz) {  // read 'size' count into the space just allocated and pointed by fdt
+        fprintf(stderr, "Failed to read the device tree blob\n");   // size does not match
         free(fdt);
         fclose(fp);
         return EXIT_FAILURE;
