@@ -112,6 +112,39 @@ int fdt_path_offset(const void* fdt, const char* path) {
         interrupt-controller    3
     */
 
+    int depth = -1;     // depth 0 for root
+    matched[0] = 1;     // see root as matched
+
+    for (;;){
+        uint32_t token = bswap32(*(const uint32_t*)p);  // read the first token
+
+        int token_offset = (int)(p - struct_base);  // offset to the current node
+
+        p += p + sizeof(uint32_t);  // go to the next depth level
+
+        switch (token){
+            case FDT_BEGIN_NODE:
+                depth++;
+
+                const char* node_name = (const char*)p;
+
+                p = align_up(p + strlen(node_name) + 1, 4);
+
+                break;
+            
+            case FDT_END_NODE:
+                break;
+            
+            case FDT_PROP:
+                break;
+        
+            case FDT_NOP:
+                break;
+
+            case FDT_END:
+            default:
+        }
+    }
 
 }
 
