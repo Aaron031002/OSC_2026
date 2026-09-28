@@ -34,6 +34,19 @@ static inline const void* align_up(const void* ptr, size_t align) {
     return (const void*)(((uintptr_t)ptr + align - 1) & ~(align - 1));
 }
 
+static int node_name_match(const char* node_name, const char* want)
+{
+    const char *want_at = strchr(want, '@');    // strchr: return a pointer point to the address '@' at want 
+
+    if (want_at)
+        return strcmp(node_name, want) == 0;    // node_name also has '@'
+
+    size_t n = strlen(want);
+
+    /* find if the first n char are identical */
+    return strncmp(node_name, want, n) == 0 && (node_name[n] == '\0' || node_name[n] == '@');   // strncmp: compare if it is match for the first n char 
+}
+
 int fdt_path_offset(const void* fdt, const char* path) {
     // TODO: Implement this function
     if (!fdt || !path || path[0] != '/')    // check input (the path needs to start with '/')
@@ -74,7 +87,7 @@ int fdt_path_offset(const void* fdt, const char* path) {
 
     /* count the number of components */
     size_t ncomp = 1;   // number of components
-    for (const char* s; *s; s++){   
+    for (const char* s = copy; *s; s++){   
         if (*s == '/')
             ncomp++;
     }
@@ -135,7 +148,7 @@ int fdt_path_offset(const void* fdt, const char* path) {
                 }
 
                 if ((size_t)depth <= ncomp){
-                    matched[depth] = matched[depth-1] && (!strcmp(node_name, comp[depth-1]));
+                    matched[depth] = matched[depth-1] && node_name_match(node_name, comp[depth-1]);
                 }
 
                 if ((size_t)depth == ncomp && matched[depth]){
