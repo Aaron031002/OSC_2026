@@ -52,7 +52,7 @@ int fdt_path_offset(const void* fdt, const char* path) {
     /* setting token parser to the first token */
     const uint8_t* p = struct_base;      
 
-    if (strcmp(path, '/') == 0)     // the path of root node is 0, so return 0
+    if (strcmp(path, "/") == 0)     // the path of root node is 0, so return 0
         return 0;
 
     /*
@@ -120,7 +120,7 @@ int fdt_path_offset(const void* fdt, const char* path) {
 
         int token_offset = (int)(p - struct_base);  // offset to the current node
 
-        p += p + sizeof(uint32_t);  // go to the next depth level
+        p += sizeof(uint32_t);  // go to the next depth level
 
         switch (token){
             case FDT_BEGIN_NODE:
@@ -130,12 +130,36 @@ int fdt_path_offset(const void* fdt, const char* path) {
 
                 p = align_up(p + strlen(node_name) + 1, 4);
 
+                if (depth == 0){
+                    break;
+                }
+
+                if ((size_t)depth <= ncomp){
+                    matched[depth] = matched[depth-1] && (!strcmp(node_name, comp[depth-1]));
+                }
+
+                if ((size_t)depth == ncomp && matched[depth]){
+                    free(matched);
+                    free(comp);
+                    free(copy);
+                
+                    return token_offset;
+                }
+
                 break;
             
             case FDT_END_NODE:
+                depth--;
+
                 break;
             
             case FDT_PROP:
+                uint32_t len = bswap32(*(const uint32_t*)p);
+
+                p += 8;     // len + nameoff
+
+                p = align_up(p + len, 4);   // skip property value
+
                 break;
         
             case FDT_NOP:
@@ -143,6 +167,11 @@ int fdt_path_offset(const void* fdt, const char* path) {
 
             case FDT_END:
             default:
+                free(matched);
+                free(comp);
+                free(copy);
+                
+                return -1;
         }
     }
 
@@ -153,6 +182,70 @@ const void* fdt_getprop(const void* fdt,
                         const char* name,
                         int* lenp) {
     // TODO: Implement this function
+    if (!fdt || nodeoffset < 0 || !name){
+        return NULL;
+    }
+
+    const struct fdt_header* header = (const struct fdt_header*)fdt;
+
+    if (bswap32(header->magic) != 0xd00dfeed)
+        return NULL;
+
+    const uint8_t* struct_base = (const uint8_t*)fdt + bswap32(header->off_dt_struct);
+    const char* string_base = (const char*)fdt + bswap32(header->off_dt_strings);
+
+    // nodeoffset is the return of fdt_path_offset (base to node)
+    const uint8_t* p = struct_base + nodeoffset;
+
+    if (bswap32(*(const uint32_t*)p) != FDT_BEGIN_NODE)
+        return NULL;
+
+    // skip FDT_BEGIN_NODE
+    p += sizeof(uint32_t);  
+
+    const char* node_name = (const char*)p;
+    
+    p = align_up(p + strlen(node_name) + 1, 4);     // padding
+
+    for (;;){
+        uint32_t token = bswap32(*(const uint32_t*)p);
+
+        p += sizeof(uint32_t);  // move on
+
+        switch (token){
+            case FDT_PROP:
+                const uint32_t len = bswap32(*(const uint32_t*)p);
+                const uint32_t nameoff = bswap32(*(const uint32_t*)(p + 4));
+
+                const void* value = p + 8;  // len & nameoff followed by value
+
+                const char* prop_name = string_base + nameoff;
+
+                if (strcmp(prop_name, name) == 0){  // find the right property
+                    if (lenp)
+                        *lenp = (int)len;
+
+                    return value;
+                }
+
+                /* if it is not the right prop, find the next one */
+                p = align_up((const uint8_t*)value + len, 4);   
+
+                break;
+
+            case FDT_NOP:
+                break;
+
+            /* the property area has ended if encounter the following token */
+            case FDT_BEGIN_NODE:
+            case FDT_END_NODE:
+            case FDT_END:
+            default:
+                return NULL;
+        }
+
+
+    }
 }
 
 int main() {
