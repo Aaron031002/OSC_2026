@@ -52,6 +52,45 @@ static int align(int n, int byte) {
 
 void initrd_list(const void* rd) {
     // TODO: Implement this function
+    const char *base = (const char*)rd;
+    int offset = 0;
+
+    /* Loop each headers */
+    while (1){
+        /* 'header' points to the start address of header */
+        const struct cpio_t *header = (const struct cpio*)(base + offset);
+        
+        /* 1. Check the magic number */
+        if (memcmp(header->magic, "070701", 6) != 0)
+            printf("Invalid CPIO magic");
+            return;
+
+        /* 2. Decode and get the file size & name size */
+        int filesize = hextoi(header->filesize, 8);
+        int namesize = hextoi(header->namesize, 8);
+
+        if (namesize <= 0 || filesize < 0){
+            printf("Invalid CPIO entry\n");
+            return;
+        }
+
+        /* 3. Add the file name pointer points to the filename behind the header of the file */
+        const char *name = base + offset + sizeof(struct cpio_t);
+        
+        /* 4. Check if this file is the final file */
+        if (strcmp(name, "TRAILER!!!") == 0){
+            break;
+        }
+
+        /* 5. Print out the file size & file name */
+        printf("%s %s\n", filesize, name);
+
+        /* 6. Calculate the offset from the very beginning to the file content start point */
+        const char *data_offset = align(offset + sizeof(struct cpio_t) + namesize, 4);
+    
+        /* 7. Calculate the address of the next header */
+        offset = align(data_offset + filesize, 4);
+    }
 }
 
 void initrd_cat(const void* rd, const char* filename) {
@@ -65,9 +104,9 @@ int main() {
         perror("fopen");
         return EXIT_FAILURE;
     }
-    fseek(fp, 0, SEEK_END);
-    long sz = ftell(fp);
-    void* rd = malloc(sz);
+    fseek(fp, 0, SEEK_END);     // move to the end of file
+    long sz = ftell(fp);    // ftell returns totals bytes from file start point to the current point
+    void* rd = malloc(sz); 
     fseek(fp, 0, SEEK_SET);
     if (fread(rd, 1, sz, fp) != sz) {
         fprintf(stderr, "Failed to read the device tree blob\n");
