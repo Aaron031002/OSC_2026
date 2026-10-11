@@ -58,12 +58,13 @@ void initrd_list(const void* rd) {
     /* Loop each headers */
     while (1){
         /* 'header' points to the start address of header */
-        const struct cpio_t *header = (const struct cpio*)(base + offset);
+        const struct cpio_t *header = (const struct cpio_t*)(base + offset);
         
         /* 1. Check the magic number */
-        if (memcmp(header->magic, "070701", 6) != 0)
+        if (memcmp(header->magic, "070701", 6) != 0){
             printf("Invalid CPIO magic");
             return;
+        }
 
         /* 2. Decode and get the file size & name size */
         int filesize = hextoi(header->filesize, 8);
@@ -83,10 +84,10 @@ void initrd_list(const void* rd) {
         }
 
         /* 5. Print out the file size & file name */
-        printf("%s %s\n", filesize, name);
+        printf("%i %s\n", filesize, name);
 
         /* 6. Calculate the offset from the very beginning to the file content start point */
-        const char *data_offset = align(offset + sizeof(struct cpio_t) + namesize, 4);
+        int data_offset = align(offset + sizeof(struct cpio_t) + namesize, 4);
     
         /* 7. Calculate the address of the next header */
         offset = align(data_offset + filesize, 4);
@@ -95,6 +96,41 @@ void initrd_list(const void* rd) {
 
 void initrd_cat(const void* rd, const char* filename) {
     // TODO: Implement this function
+    const char *base = (const char*)rd;
+    int offset = 0;
+
+    while (1){
+        const struct cpio_t *header = (const struct cpio_t*)(base + offset);
+        
+        if (memcmp(header->magic, "070701", 6) != 0){
+            printf("Invalid CPIO magic");
+            return;
+        }
+
+        int namesize = hextoi(header->namesize, 8);
+        int filesize = hextoi(header->filesize, 8);
+
+        if (namesize <= 0 || filesize < 0){
+            printf("Invalid CPIO entry\n");
+            return;
+        }
+
+        const char* name = base + offset + sizeof(struct cpio_t);
+
+        if (strcmp(name, "TRAILER!!!") == 0)
+            break;
+
+        int data_offset = align(offset + sizeof(struct cpio_t) + namesize, 4);
+
+        if (strcmp(name, filename) == 0){
+            fwrite(base + data_offset, 1, filesize, stdout);    // (start ptr, size per write, total write size, stream)
+            return;
+        }
+
+        offset = align(data_offset + filesize, 4);
+    }
+    
+    printf("initrd_cat: %s: No such file\n", filename);
 }
 
 int main() {
@@ -119,6 +155,7 @@ int main() {
     initrd_list(rd);
     initrd_cat(rd, "osc.txt");
     initrd_cat(rd, "test.txt");
+    initrd_cat(rd, "penguin.txt");
 
     free(rd);
     return 0;
