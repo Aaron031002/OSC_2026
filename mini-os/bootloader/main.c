@@ -10,6 +10,9 @@ extern unsigned char uart_getb(void);
 #define BOOT_MAGIC        0x544F4F42
 #define KERNEL_LOAD_ADDR  0x82000000UL
 
+static unsigned long boot_hartid;   // CPU hart ID currently activated
+static const void *boot_fdt;    // the address DTB located in
+
 enum sbi_ext_base_fid {
     SBI_EXT_BASE_GET_SPEC_VERSION,
     SBI_EXT_BASE_GET_IMP_ID,
@@ -138,11 +141,26 @@ void load_kernel()
 
     asm volatile("fence.i" ::: "memory"); // see the data that just updated as instruction to fetch, and make a memory barrier to stop compiler from reordering
 
+/*--------------------------------------------*/
     /* (void (*)(void)) cast the type into a function pointer with no parameter and void output type */
-    void (*kernel_entry)(void) = (void (*)(void))KERNEL_LOAD_ADDR;  // function pointer: dynamically decide which function to execute
+    //void (*kernel_entry)(void) = (void (*)(void))KERNEL_LOAD_ADDR;  // function pointer: dynamically decide which function to execute
 
     /* jump to execute the new kernel */
-    kernel_entry(); // execute kernel_entry at KERNEL_LOAD_ADDR (PC points to KERNEL_LOAD_ADDR)
+    //kernel_entry(); // execute kernel_entry at KERNEL_LOAD_ADDR (PC points to KERNEL_LOAD_ADDR)
+/*-----------------------------------------------*/
+    
+    /* define a function pointer points to functions like:
+        void start_kernel(unsigned long hartid, const void *fdt){} 
+    */
+    typedef void (*kernel_entry_t)(
+        unsigned long  hartid,
+        const void *fdt
+    );
+
+    /* the pointer points to KERNEL_LOAD_ADDR and execute the function at that location */
+    kernel_entry_t kernel_entry = (kernel_entry_t)KERNEL_LOAD_ADDR;
+
+    kernel_entry(boot_hartid, boot_fdt);
 
     while(1);   // do not jump back to the initial addr (in case of finishing executing kernel_entry)
 }
@@ -190,7 +208,12 @@ void shell()
     }
 }
 
-void start_kernel() {
+void start_kernel(unsigned long hartid, const void* fdt) 
+{
+    /* preserve the info openSBI sent */
+    boot_hartid = hartid;
+    boot_fdt = fdt;    
+    
     uart_puts("\nStarting kernel ...\n");
 
     uart_puts("SBI specification version: ");
