@@ -1,3 +1,6 @@
+#include <string.h>
+#include "fdt.h"
+
 #define UART_BASE 0x10000000UL
 #define UART_RBR  (unsigned char*)(UART_BASE + 0x0) // Receive Buffer Register (buffer that receive data)
 #define UART_THR  (unsigned char*)(UART_BASE + 0x0) // Transmit Holding Register (holds the data to be transmitted)
@@ -29,19 +32,6 @@ void uart_puts(const char* s) {
         uart_putc(*s);
         s++;
     }
-}
-
-int strcmp(const char* s1, const char* s2)
-{
-    while (*s1 != '\0' && *s2 != '\0'){
-        if (*s1 != *s2){
-            return 1;
-        }
-        s1++;
-        s2++;
-    }
-
-    return !(*s1 == '\0' && *s2 == '\0');
 }
 
 void shell() 
@@ -99,6 +89,26 @@ void start_kernel(unsigned long hartid, const void *fdt)
         /* prevent it from endian problem */
         if (dtb[0] == 0xd0 && dtb[1] == 0x0d && dtb[2] == 0xfe && dtb[3] == 0xed){
             uart_puts("DTB pointer received; magic OK!\n");
+
+            /* find UART node for QEMU */
+            int offset = fdt_path_offset(fdt, "/soc/serial");
+
+            if (offset < 0)
+                offset = fdt_path_offset(fdt, "/soc/uart");
+
+            if (offset >= 0) {
+                int len;
+                const void *reg =
+                    fdt_getprop(fdt, offset, "reg", &len);
+
+                if (reg && len >= 4)
+                    uart_puts("FDT: UART reg found\n");
+                else
+                    uart_puts("FDT: UART reg missing\n");
+            }
+            else {
+                uart_puts("FDT: /soc/uart not found\n");
+            }
         }
         else{
             uart_puts("Error: Invalid DTB magic\n");
