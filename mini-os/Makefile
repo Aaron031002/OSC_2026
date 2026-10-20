@@ -6,10 +6,7 @@ ROOTFS_ITEMS := $(shell find rootfs -mindepth 1 -print)
 
 all: initrd kernel bootloader
 
-initrd: initramfs.cpio
-
-initramfs.cpio: $(ROOTFS_ITEMS)
-	cd rootfs && find . -print | LC_ALL=C sort | cpio -o -H newc > ../initramfs.cpio
+initrd: rootfs/initramfs.cpio
 
 kernel:
 	$(MAKE) -C kernel
@@ -18,9 +15,8 @@ bootloader:
 	$(MAKE) -C bootloader bootloader
 
 run: all
-	cd bootloader && $(QEMU) -M virt -m 128M -kernel bootloader -display none -serial pty -monitor stdio -S -initrd ../initramfs.cpio
+	cd bootloader && $(QEMU) -M virt -m 128M -kernel bootloader -display none -serial pty -monitor stdio -S -initrd ../rootfs/initramfs.cpio
 
 clean:
 	$(MAKE) -C kernel clean
 	$(MAKE) -C bootloader clean
-	rm -f initramfs.cpio

@@ -33,7 +33,7 @@ bootloader:
 		bootloader
 
 run: bootloader
-	$(QEMU) -M virt -m 128M -kernel bootloader -display none -serial pty -monitor stdio -S -initrd ../initramfs.cpio
+	$(QEMU) -M virt -m 128M -kernel bootloader -display none -serial pty -monitor stdio -S -initrd ../rootfs/initramfs.cpio
 
 clean:
 	rm -f *.o \
