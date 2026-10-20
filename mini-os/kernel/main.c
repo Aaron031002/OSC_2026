@@ -1,12 +1,20 @@
 #include <string.h>
 #include "fdt.h"
+#include "uart.h"
+#include "fdt_uart.h"
 
-#define UART_BASE 0x10000000UL
-#define UART_RBR  (unsigned char*)(UART_BASE + 0x0) // Receive Buffer Register (buffer that receive data)
-#define UART_THR  (unsigned char*)(UART_BASE + 0x0) // Transmit Holding Register (holds the data to be transmitted)
-#define UART_LSR  (unsigned char*)(UART_BASE + 0x5)
+static uintptr_t uart_base;
+
+#define UART_RBR ((volatile unsigned char*)(uart_base + 0x0))   // Receive Buffer Register (buffer that receive data)
+#define UART_THR ((volatile unsigned char*)(uart_base + 0x0))   // Transmit Holding Register (holds the data to be transmitted)
+#define UART_LSR ((volatile unsigned char*)(uart_base + 0x5))
 #define LSR_DR    (1 << 0)  // if data is available in Receive Buffer Register
 #define LSR_TDRQ  (1 << 5)  // if UART is ready to accept a new char for transmission
+
+void uart_init(uintptr_t base)
+{
+    uart_base = base;
+}
 
 char uart_getc() {
     // TODO: Implement this function
@@ -77,6 +85,14 @@ void shell()
 void start_kernel(unsigned long hartid, const void *fdt) 
 {
     (void)hartid;   // tell the compiler 'hartid' won't be used
+
+    uintptr_t uart_mmio = fdt_uart_base(fdt);
+
+    if (!uart_mmio) {
+        while (1);
+    }
+
+    uart_init(uart_mmio);
 
     uart_puts("\nStarting kernel ...\n");
     

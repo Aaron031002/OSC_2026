@@ -13,16 +13,18 @@ TARGET = kernel
 all: $(TARGET)
 
 $(TARGET): start.S main.c link.ld \
-           ../src/string.c ../src/malloc.c ../src/fdt.c
+           ../src/string.c ../src/malloc.c \
+           ../src/fdt.c ../src/fdt_uart.c
 	$(CC) $(CFLAGS) -c start.S -o start.o
 	$(CC) $(CFLAGS) -c main.c -o main.o
 
 	$(CC) $(CFLAGS) -c ../src/string.c -o string.o
 	$(CC) $(CFLAGS) -c ../src/malloc.c -o malloc.o
 	$(CC) $(CFLAGS) -c ../src/fdt.c -o fdt.o
+	$(CC) $(CFLAGS) -c ../src/fdt_uart.c -o fdt_uart.o
 
 	$(CC) $(CFLAGS) -T link.ld -o kernel.elf \
-    	start.o main.o string.o malloc.o fdt.o -lgcc
+    	start.o main.o string.o malloc.o fdt.o fdt_uart.o -lgcc
 
 	$(OBJCOPY) -O binary kernel.elf $(TARGET)
 

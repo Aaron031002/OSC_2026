@@ -1,8 +1,6 @@
-extern char uart_getc(void);
-extern void uart_putc(char c);
-extern void uart_puts(const char* s);
-extern void uart_hex(unsigned long h);
-extern unsigned char uart_getb(void);
+#include <string.h>
+#include "uart.h"
+#include "fdt_uart.h"
 
 #define SBI_EXT_SET_TIMER 0x0
 #define SBI_EXT_SHUTDOWN  0x8
@@ -88,19 +86,6 @@ long sbi_probe_extension(int extid) {
     ret = sbi_ecall(SBI_EXT_BASE, SBI_EXT_BASE_PROBE_EXT, extid, 0, 0, 0, 0, 0);
 
     return ret.value;
-}
-
-int strcmp(const char* s1, const char* s2)
-{
-    while (*s1 != '\0' && *s2 != '\0'){
-        if (*s1 != *s2){
-            return 1;
-        }
-        s1++;
-        s2++;
-    }
-
-    return !(*s1 == '\0' && *s2 == '\0');
 }
 
 void load_kernel()
@@ -214,7 +199,22 @@ void start_kernel(unsigned long hartid, const void* fdt)
     boot_hartid = hartid;
     boot_fdt = fdt;    
     
+    /* Get the UART base address from the DTB */
+    uintptr_t uart_mmio = fdt_uart_base(fdt);
+
+    if (!uart_mmio) {
+        while (1);
+    }
+
+    uart_init(uart_mmio);   // store it as variable
+
+    uart_puts("UART base from DTB: ");
+    uart_hex(uart_mmio);
+    uart_puts("\n");
+
+
     uart_puts("\nStarting kernel ...\n");
+
 
     uart_puts("SBI specification version: ");
     uart_hex(sbi_get_spec_version());
