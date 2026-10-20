@@ -2,6 +2,8 @@
 #include "fdt.h"
 #include "uart.h"
 #include "fdt_uart.h"
+#include "cpio.h"
+#include "fdt_initrd.h"
 
 static uintptr_t uart_base;
 
@@ -42,8 +44,11 @@ void uart_puts(const char* s) {
     }
 }
 
+static const void *initrd_start;
+static int initrd_ready;
+
 void shell() 
-{
+{   
     char command[128];
     int index = 0;
 
@@ -62,7 +67,36 @@ void shell()
             else if (!strcmp(command, "help")){
                 uart_puts("\nAvailable commands:\
                             \n  help - show all commands.\
-                            \n  hello - print Hello World.\n");
+                            \n  hello - print Hello World.\
+                            \n  ls - list initramfs files.\
+                            \n  cat <file> - display a file\n");
+            }
+            else if (!strcmp(command, "ls")) {
+                uart_puts("\n");
+
+                if (initrd_ready)
+                    initrd_list(initrd_start);
+                else
+                    uart_puts("Initramfs not available\n");
+            }
+            else if (!strncmp(command, "cat", 3) &&
+                    (command[3] == '\0' ||
+                    command[3] == ' ' ||
+                    command[3] == '\t')) {
+
+                const char *name = command + 3;     // point to ' ' space char (ex:cat hello.txt)
+
+                while (*name == ' ' || *name == '\t')
+                    name++;
+
+                uart_puts("\n");
+                
+                if (!*name)
+                    uart_puts("Usage: cat <filename>\n");
+                else if (!initrd_ready)
+                    uart_puts("Initramfs not available\n");
+                else
+                    initrd_cat(initrd_start, name);
             }
             else {
                 uart_puts("\nUnknown command: ");
@@ -96,6 +130,8 @@ void start_kernel(unsigned long hartid, const void *fdt)
 
     uart_puts("\nStarting kernel ...\n");
     
+
+    /* UART DTB part */
     if (!fdt){
         uart_puts("Error: DTB pointer is NULL\n");
     }
@@ -131,6 +167,22 @@ void start_kernel(unsigned long hartid, const void *fdt)
         }
     }
     
+    /* initrd DTB part */
+    const void *initrd_end = NULL;
+
+    if (fdt_get_initrd_range(fdt, &initrd_start, &initrd_end) == 0 &&
+        initrd_set_range(initrd_start, initrd_end) == 0) 
+    {
+        initrd_ready = 1;
+        uart_puts("Initramfs range found in DTB\n");
+    }
+    else {
+        initrd_start = NULL;
+        initrd_ready = 0;
+        uart_puts("Initramfs missing in DTB\n");
+    }
+
+
     while (1) {
         shell();
     }

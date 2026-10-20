@@ -170,7 +170,8 @@ void shell()
             else if (!strcmp(command, "help")){
                 uart_puts("Available commands:\
                             \n  help - show all commands.\
-                            \n  hello - print Hello World.\n");
+                            \n  hello - print Hello World.
+                            \n  load - load kernel.\n");
             }
             else if (!strcmp(command, "load")){
                 load_kernel();
