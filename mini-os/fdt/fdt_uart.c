@@ -1,5 +1,4 @@
 #include "fdt.h"
-#include "fdt_uart.h"
 #include "endian.h"
 
 #include <stdint.h>

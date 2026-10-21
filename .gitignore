@@ -2,3 +2,5 @@
 *.elf
 prog
 user
+build/
+*.bin

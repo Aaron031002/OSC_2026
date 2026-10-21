@@ -1,4 +1,4 @@
-#include "fdt_initrd.h"
+#include "fdt.h"
 #include "cpio.h"
 #include <stdint.h>
 #include <stddef.h>

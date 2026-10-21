@@ -1,7 +1,7 @@
 #include <string.h>
 #include "uart.h"
 #include "sbi.h"
-#include "fdt_uart.h"
+#include "fdt.h"
 
 #define BOOT_MAGIC        0x544F4F42
 #define KERNEL_LOAD_ADDR  0x82000000UL

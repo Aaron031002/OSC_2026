@@ -1,9 +1,7 @@
 #include <string.h>
 #include "fdt.h"
 #include "uart.h"
-#include "fdt_uart.h"
 #include "cpio.h"
-#include "fdt_initrd.h"
 
 static const void *initrd_start;
 static int initrd_ready;
