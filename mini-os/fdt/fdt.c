@@ -1,4 +1,5 @@
 #include "fdt.h"
+#include "endian.h"
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -22,14 +23,6 @@ struct fdt_header {
     uint32_t size_dt_strings;
     uint32_t size_dt_struct;     
 };
-
-static inline uint32_t bswap32(uint32_t x) {
-    return __builtin_bswap32(x);
-}
-
-static inline __attribute__((unused)) uint64_t bswap64(uint64_t x) {
-    return __builtin_bswap64(x);
-}
 
 static inline const void* align_up(const void* ptr, size_t align) {
     return (const void*)(((uintptr_t)ptr + align - 1) & ~(align - 1));

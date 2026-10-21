@@ -3,7 +3,6 @@
 
 #include <stdint.h>
 
-/* Both bootloader and kernel provide their own implementations. */
 void uart_init(uintptr_t base);
 char uart_getc(void);
 unsigned char uart_getb(void); /* Only bootloader needs this. */

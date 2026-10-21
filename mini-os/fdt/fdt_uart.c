@@ -1,5 +1,4 @@
 #include "fdt.h"
-#include "fdt_uart.h"
 #include "endian.h"
 
 #include <stdint.h>
@@ -54,7 +53,7 @@ uintptr_t fdt_uart_base(const void *fdt)    // fdt points to the start point of 
     if (address_cells == 1) {
         if (len < 4)
             return 0;
-        return (uintptr_t)bswap32(*(const uint32_t *)reg);;
+        return (uintptr_t)bswap32(*(const uint32_t *)reg);
     }
     if (address_cells == 2) {   // to represent a 64-bit address_cells
         if (len < 8)

@@ -1,48 +1,7 @@
 #include <string.h>
 #include "fdt.h"
 #include "uart.h"
-#include "fdt_uart.h"
 #include "cpio.h"
-#include "fdt_initrd.h"
-
-static uintptr_t uart_base;
-
-#define UART_RBR ((volatile unsigned char*)(uart_base + 0x0))   // Receive Buffer Register (buffer that receive data)
-#define UART_THR ((volatile unsigned char*)(uart_base + 0x0))   // Transmit Holding Register (holds the data to be transmitted)
-#define UART_LSR ((volatile unsigned char*)(uart_base + 0x5))
-#define LSR_DR    (1 << 0)  // if data is available in Receive Buffer Register
-#define LSR_TDRQ  (1 << 5)  // if UART is ready to accept a new char for transmission
-
-void uart_init(uintptr_t base)
-{
-    uart_base = base;
-}
-
-char uart_getc() {
-    // TODO: Implement this function
-    while (((*UART_LSR) & LSR_DR) == 0);
-
-    return *UART_RBR;
-}
-
-void uart_putc(char c) {
-    // TODO: Implement this function
-    if (c == '\n'){
-        uart_putc('\r');
-    }
-    
-    while (((*UART_LSR) & LSR_TDRQ) == 0);
-
-    *UART_THR = c;
-}
-
-void uart_puts(const char* s) {
-    // TODO: Implement this function
-    while (*s != '\0'){
-        uart_putc(*s);
-        s++;
-    }
-}
 
 static const void *initrd_start;
 static int initrd_ready;
@@ -62,18 +21,16 @@ void shell()
             command[index] = '\0';
 
             if (!strcmp(command, "hello")){
-                uart_puts("\nHello World!\n");
+                uart_puts("Hello World!\n");
             }
             else if (!strcmp(command, "help")){
-                uart_puts("\nAvailable commands:\
+                uart_puts("Available commands:\
                             \n  help - show all commands.\
                             \n  hello - print Hello World.\
                             \n  ls - list initramfs files.\
                             \n  cat <file> - display a file\n");
             }
             else if (!strcmp(command, "ls")) {
-                uart_puts("\n");
-
                 if (initrd_ready)
                     initrd_list(initrd_start);
                 else
@@ -88,8 +45,6 @@ void shell()
 
                 while (*name == ' ' || *name == '\t')
                     name++;
-
-                uart_puts("\n");
                 
                 if (!*name)
                     uart_puts("Usage: cat <filename>\n");
@@ -99,7 +54,7 @@ void shell()
                     initrd_cat(initrd_start, name);
             }
             else {
-                uart_puts("\nUnknown command: ");
+                uart_puts("Unknown command: ");
                 uart_puts(command);
                 uart_puts("\nuse help to get commands.\n");
             }
@@ -182,8 +137,5 @@ void start_kernel(unsigned long hartid, const void *fdt)
         uart_puts("Initramfs missing in DTB\n");
     }
 
-
-    while (1) {
-        shell();
-    }
+    shell();
 }
