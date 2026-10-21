@@ -3,11 +3,11 @@
 static uintptr_t uart_base; 
 
 // volatile: this state register could be change, tell compiler do not caching it 
-#define UART_RBR ((volatile unsigned char*)(uart_base + 0x0))
-#define UART_THR ((volatile unsigned char*)(uart_base + 0x0))
+#define UART_RBR ((volatile unsigned char*)(uart_base + 0x0))   // Receive Buffer Register (buffer that receive data)
+#define UART_THR ((volatile unsigned char*)(uart_base + 0x0))   // Transmit Holding Register (holds the data to be transmitted)
 #define UART_LSR ((volatile unsigned char*)(uart_base + 0x5))
-#define LSR_DR    (1 << 0)
-#define LSR_TDRQ  (1 << 5)
+#define LSR_DR    (1 << 0)  // if data is available in Receive Buffer Register
+#define LSR_TDRQ  (1 << 5)  // if UART is ready to accept a new char for transmission
 
 /* store the UART base address just found to uart_base */
 void uart_init(uintptr_t base)
@@ -15,7 +15,9 @@ void uart_init(uintptr_t base)
     uart_base = base;
 }
 
-char uart_getc() {
+char uart_getc() 
+{
+    // TODO: Implement this function
     while ((*UART_LSR & LSR_DR) == 0)
         ;
     char c = (char)*UART_RBR;
@@ -29,7 +31,9 @@ unsigned char uart_getb()   // for binary transmission (if .img contain 0x0D(ie.
     return *UART_RBR;
 }
 
-void uart_putc(char c) {
+void uart_putc(char c) 
+{
+    // TODO: Implement this function
     if (c == '\n')
         uart_putc('\r');
 
@@ -38,7 +42,9 @@ void uart_putc(char c) {
     *UART_THR = c;
 }
 
-void uart_puts(const char* s) {
+void uart_puts(const char* s) 
+{
+    // TODO: Implement this function
     while (*s)
         uart_putc(*s++);
 }
