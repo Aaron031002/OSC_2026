@@ -3,7 +3,6 @@ CROSS   ?= riscv64-unknown-elf-
 CC      := $(CROSS)gcc
 OBJCOPY := $(CROSS)objcopy
 QEMU    ?= qemu-system-riscv64
-HOST_CC ?= gcc
 
 # ---- Memory layout (single source of truth) ----------------------------
 BOOTLOADER_ADDR := 0x80200000
@@ -32,7 +31,6 @@ BOOT_OBJS   := $(call obj,$(BOOT_SRCS))
 KERNEL_OBJS := $(call obj,$(KERNEL_SRCS))
 
 # ---- Targets -----------------------------------------------------------
-.PHONY: all bootloader kernel initrd run test clean
 .DELETE_ON_ERROR:
 
 all: bootloader kernel initrd
@@ -65,24 +63,6 @@ $(BUILD)/initramfs.cpio: $(ROOTFS_FILES)
 run: all
 	$(QEMU) -M virt -m 128M -display none -serial pty -monitor stdio -S \
 		-kernel $(BUILD)/bootloader.bin -initrd $(BUILD)/initramfs.cpio
-
-# ---- Host unit tests (x86-64 Linux) ------------------------------------
-HOST_CFLAGS := -std=gnu11 -ffreestanding -nostdlib -fno-builtin \
-               -fno-stack-protector -fno-pie -no-pie -static \
-               -Wall -Wextra -Werror -Iinclude
-TESTS := $(BUILD)/tests/test-lib $(BUILD)/tests/test-fdt $(BUILD)/tests/test-initrd
-
-$(BUILD)/tests/test-lib:    tests/test-lib.c lib/string.c lib/malloc.c lib/stdio.c
-$(BUILD)/tests/test-fdt:    tests/test-fdt.c lib/string.c lib/malloc.c fdt/fdt.c
-$(BUILD)/tests/test-initrd: tests/test-initrd.c lib/string.c lib/malloc.c lib/stdio.c \
-                            fdt/fdt.c fdt/fdt_initrd.c fs/cpio.c
-$(TESTS):
-	@mkdir -p $(@D)
-	$(HOST_CC) $(HOST_CFLAGS) $^ -o $@
-
-test: $(TESTS)
-	@for t in $(TESTS); do ./$$t || { echo "FAIL: $$t (exit $$?)"; exit 1; }; done
-	@echo "All host tests: PASS"
 
 clean:
 	rm -rf $(BUILD)

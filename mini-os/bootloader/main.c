@@ -155,7 +155,5 @@ void start_kernel(unsigned long hartid, const void* fdt)
     uart_hex(sbi_probe_extension(SBI_EXT_SHUTDOWN));
     uart_puts("\n");
 
-    while (1) {
-        shell();
-    }
+    shell();
 }

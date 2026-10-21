@@ -21,18 +21,16 @@ void shell()
             command[index] = '\0';
 
             if (!strcmp(command, "hello")){
-                uart_puts("\nHello World!\n");
+                uart_puts("Hello World!\n");
             }
             else if (!strcmp(command, "help")){
-                uart_puts("\nAvailable commands:\
+                uart_puts("Available commands:\
                             \n  help - show all commands.\
                             \n  hello - print Hello World.\
                             \n  ls - list initramfs files.\
                             \n  cat <file> - display a file\n");
             }
             else if (!strcmp(command, "ls")) {
-                uart_puts("\n");
-
                 if (initrd_ready)
                     initrd_list(initrd_start);
                 else
@@ -47,8 +45,6 @@ void shell()
 
                 while (*name == ' ' || *name == '\t')
                     name++;
-
-                uart_puts("\n");
                 
                 if (!*name)
                     uart_puts("Usage: cat <filename>\n");
@@ -58,7 +54,7 @@ void shell()
                     initrd_cat(initrd_start, name);
             }
             else {
-                uart_puts("\nUnknown command: ");
+                uart_puts("Unknown command: ");
                 uart_puts(command);
                 uart_puts("\nuse help to get commands.\n");
             }
@@ -141,8 +137,5 @@ void start_kernel(unsigned long hartid, const void *fdt)
         uart_puts("Initramfs missing in DTB\n");
     }
 
-
-    while (1) {
-        shell();
-    }
+    shell();
 }
