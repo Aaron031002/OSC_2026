@@ -5,8 +5,18 @@ OBJCOPY := $(CROSS)objcopy
 QEMU    ?= qemu-system-riscv64
 
 # ---- Memory layout (single source of truth) ----------------------------
-BOOTLOADER_ADDR := 0x80200000
-KERNEL_ADDR     := 0x82000000
+PLATFORM ?= qemu
+ifeq ($(PLATFORM), opi)
+LOAD_ADDR := 0x00200000
+RELOC_ADDR := 0x20000000
+else
+# the location of bootloader.bin placed by firmware
+LOAD_ADDR := 0x80200000
+# the location bootloader relocated itself to
+RELOC_ADDR := 0x86000000
+endif
+# kernel location after receiving from uart
+KERNEL_ADDR := $(LOAD_ADDR)
 
 BUILD := build
 
@@ -19,11 +29,12 @@ LDLIBS   ?= -lgcc
 # ---- Sources -----------------------------------------------------------
 COMMON_SRCS := drivers/uart.c \
                lib/string.c lib/malloc.c \
-               fdt/fdt.c fdt/fdt_uart.c
+               fdt/fdt.c fdt/fdt_uart.c fdt/fdt_initrd.c
 
-BOOT_SRCS   := bootloader/start.S $(COMMON_SRCS) arch/riscv/sbi.c bootloader/main.c
+BOOT_SRCS   := bootloader/start.S $(COMMON_SRCS) arch/riscv/sbi.c \
+			   bootloader/reloc.c bootloader/main.c
 
-KERNEL_SRCS := kernel/start.S $(COMMON_SRCS) lib/stdio.c fs/cpio.c fdt/fdt_initrd.c \
+KERNEL_SRCS := kernel/start.S $(COMMON_SRCS) lib/stdio.c fs/cpio.c \
                kernel/main.c
 
 obj = $(patsubst %,$(BUILD)/obj/%.o,$(1))
@@ -45,7 +56,8 @@ $(BUILD)/obj/%.o: %
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(BUILD)/bootloader.elf: $(BOOT_OBJS) bootloader/linker.ld
-	$(CC) $(CFLAGS) -T bootloader/linker.ld -Wl,--defsym=LOAD_ADDR=$(BOOTLOADER_ADDR) \
+	$(CC) $(CFLAGS) -T bootloader/linker.ld \
+		-Wl,--defsym=LOAD_ADDR=$(LOAD_ADDR) -Wl,--defsym=RELOC_ADDR=$(RELOC_ADDR) \
 		$(BOOT_OBJS) $(LDLIBS) -o $@
 
 $(BUILD)/kernel.elf: $(KERNEL_OBJS) kernel/linker.ld

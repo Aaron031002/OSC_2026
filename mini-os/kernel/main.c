@@ -6,6 +6,8 @@
 static const void *initrd_start;
 static int initrd_ready;
 
+extern char _start[];
+
 void shell() 
 {   
     char command[128];
@@ -85,6 +87,9 @@ void start_kernel(unsigned long hartid, const void *fdt)
 
     uart_puts("\nStarting kernel ...\n");
     
+    uart_puts("Kernel running at ");
+    uart_hex((uintptr_t)_start);
+    uart_puts("\n");
 
     /* UART DTB part */
     if (!fdt){

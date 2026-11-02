@@ -255,3 +255,24 @@ const void* fdt_getprop(const void* fdt,
     }
 }
 
+/* Translation of device tree cells <0x0 0x80000000> */
+uint64_t read_cells(const uint32_t *p, uint32_t n)
+{
+    uint64_t v = 0;
+    while (n--)
+        v = (v << 32) | bswap32(*p++);
+    return v;
+}
+
+/* Read #address_cells / #size_cells of root (since the parent of /memory is root) */
+uint32_t root_cells(const void *fdt, const char *name, uint32_t dflt)
+{
+    int len = 0;
+    const uint32_t *p = fdt_getprop(fdt, 0, name, &len);
+    return (p && len == 4) ? bswap32(*p) : dflt;
+}
+
+uintptr_t fdt_total_size(const void *fdt)
+{
+    return bswap32(((const uint32_t *)fdt)[1]);     // the second element of fdt_header (totalsize)
+}

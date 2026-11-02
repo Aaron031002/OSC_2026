@@ -2,9 +2,12 @@
 #include "uart.h"
 #include "sbi.h"
 #include "fdt.h"
+#include "reloc.h"
 
 #define BOOT_MAGIC        0x544F4F42
-#define KERNEL_LOAD_ADDR  0x82000000UL
+//#define KERNEL_LOAD_ADDR  0x82000000UL
+
+extern char _start[], _end[];
 
 static unsigned long boot_hartid;   // CPU hart ID currently activated
 static const void *boot_fdt;    // the address DTB located in
@@ -38,7 +41,21 @@ void load_kernel()
     uart_hex(header.size);
     uart_puts("\n");
 
-    uart_puts("\nReceiving kernel...\n");
+    /* kernel 不能蓋到 bootloader 自己、DTB、initrd */
+    uintptr_t k_start = KERNEL_LOAD_ADDR;   // KERNEL_LOAD_ADDR = 0x80200000
+    uintptr_t k_end   = k_start + header.size;
+    if (k_start < (uintptr_t)_end && (uintptr_t)_start < k_end) {   // _start = 0x86000000
+        uart_puts("Kernel would overwrite the bootloader, abort\n");
+        return;
+    }
+    if (region_conflict(boot_fdt, k_start, k_end)) {
+        uart_puts("Unsafe kernel load address, abort\n");
+        return;
+    }
+
+    uart_puts("\nReceiving kernel to ");
+    uart_hex(KERNEL_LOAD_ADDR);
+    uart_puts("...\n");
 
     /* kernel point to the kernel start point */
     unsigned char* kernel = (unsigned char*)KERNEL_LOAD_ADDR;
@@ -134,6 +151,10 @@ void start_kernel(unsigned long hartid, const void* fdt)
     }
 
     uart_init(uart_mmio);   // store it as variable
+
+    uart_puts("Bootloader relocated, now running at ");
+    uart_hex((uintptr_t)_start);
+    uart_puts("\n");
 
     uart_puts("UART base from DTB: ");
     uart_hex(uart_mmio);
